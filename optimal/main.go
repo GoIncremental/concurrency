@@ -14,14 +14,13 @@ type die struct {
 
 type person struct {
 	id  int
-	in  chan []*die
-	out chan []*die
+	in  chan *die
+	out chan *die
 }
 
 func (p *person) doWork() {
 
-	box := <-p.in
-	for _, die := range box {
+	for die := range p.in {
 		if p.id == 1 {
 			die.value = 1
 		} else {
@@ -29,18 +28,15 @@ func (p *person) doWork() {
 		}
 		log.Printf("Person %d set die %d to %d\n", p.id, die.id, die.value)
 		time.Sleep(time.Duration(100) * time.Millisecond)
-
+		p.out <- die
 	}
 
-	p.out <- box
 }
 
-func logCompletion(c chan []*die) {
+func logCompletion(c chan *die) {
 
-	dice := <-c
-	for _, d := range dice {
-		log.Printf("Die %d is completed\n", d.id)
-	}
+	d := <-c
+	log.Printf("Die %d is completed\n", d.id)
 
 }
 
@@ -63,10 +59,10 @@ func main() {
 
 	//Create 6 people
 	var room []*person
-	startCh := make(chan []*die, 10)
+	startCh := make(chan *die, 10)
 	prevCh := startCh
 	for i := 0; i < 6; i++ {
-		out := make(chan []*die, 10)
+		out := make(chan *die, 10)
 		p := &person{
 			id:  i + 1,
 			in:  prevCh,
@@ -80,10 +76,19 @@ func main() {
 
 	}
 
-	startCh <- dice
+	for _, d := range dice {
 
-	logCompletion(prevCh)
+		startCh <- d
+
+	}
+
+	for _ = range dice {
+
+		logCompletion(prevCh)
+
+	}
 
 	timeTaken := time.Since(start)
 	fmt.Printf("Time taken : %s \n", timeTaken)
+
 }
