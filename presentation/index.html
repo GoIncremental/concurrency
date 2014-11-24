@@ -70,7 +70,6 @@
 				<!-- Example of nested vertical slides -->
 				<section>
 					<section>
-						<h2>Follow along with the code</h2>
 						<pre><code class="bash">
  $ mkdir $GOPATH/bin
  $ mkdir $GOPATH/src
@@ -81,7 +80,6 @@
 
 					</section>
 					<section>
-						<h2>Follow along with the code</h2>
 						<pre><code class="bash">
  $ cd $GOPATH/src/github.com/goincremental/concurrency
  $ mkdir hello
@@ -89,6 +87,7 @@
  $ touch main.go
  $ [atom/subl/nano] main.go
 						</code></pre>
+					  <p>hello/main.go</p>
 						<pre><code class="go">
  package main
 
@@ -107,6 +106,7 @@
 
 </code></pre>
 					</section>
+				</section>
 					<section>
 
 <pre><code class="bash">
@@ -117,7 +117,7 @@
  $ [atom/subl/nano] main.go
 
 </code></pre>
-<p>hello/main.go</p>
+<p>variable/main.go</p>
 <pre><code class="go">
  package main
 
@@ -140,30 +140,6 @@
 
 </code></pre>
 					</section>
-<section>
-<p>variable/main.go</p>
-<pre><code class="go">
-package main
-
-import("fmt")
-
-func main() {
-
-  name := "Liam"
-  fmt.Printf("Hello, %s!\n", name)
-
-}
-
-</code></pre>
-<pre><code class="bash">
- $ go install
- $ variable
- Hello, Liam!
-
-</code></pre>
-</section>
-
-				</section>
 <section>
 <section>
 <p>linear/main.go</p>

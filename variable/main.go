@@ -4,7 +4,7 @@ import "fmt"
 
 func main() {
 	var name string
-	name = "Liam"
+	name = "David"
 	fmt.Printf("hello, %s! \n", name)
 
 }
