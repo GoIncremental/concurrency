@@ -108,7 +108,7 @@
 </code></pre>
 					</section>
 					<section>
-						<h2>Follow along with the code</h2>
+
 <pre><code class="bash">
  $ cd ..
  $ mkdir variable
@@ -117,6 +117,7 @@
  $ [atom/subl/nano] main.go
 
 </code></pre>
+<p>hello/main.go</p>
 <pre><code class="go">
  package main
 
@@ -140,7 +141,7 @@
 </code></pre>
 					</section>
 <section>
-<h2>Follow along with the code</h2>
+<p>variable/main.go</p>
 <pre><code class="go">
 package main
 
@@ -165,6 +166,7 @@ func main() {
 				</section>
 <section>
 <section>
+<p>linear/main.go</p>
 <pre><code class="go">
  package main
 
@@ -178,49 +180,205 @@ func main() {
    value int
  }
 
-</code></pre>
-</section>
-<section>
-<pre><code class="go">
+ func orderDice(val int, dice []*die) {
 
-func orderDice(val int, dice []*die) {
+   for i, v := range dice {
+     fmt.Printf("Dice number %d is currently %d \n", i+1, v.value)
+     fmt.Printf("Setting Dice %d to: %d \n", i+1, val)
+     v.value = val
+     time.Sleep(100 * time.Millisecond)
+   }
 
-  for i, v := range dice {
-    fmt.Printf("Dice number %d is currently %d \n", i+1, v.value)
-    fmt.Printf("Setting Dice %d to: %d \n", i+1, val)
-    v.value = val
-    time.Sleep(100 * time.Millisecond)
-  }
+ }
 
-}
-
-</code></pre>
-</section>
-<section>
-<pre><code class="go">
  func main() {
+
    start := time.Now()
    var dice []*die
+   //create 10 dice
    for e := 0; e < 10; e++ {
      d := &die{
-     value: rand.Intn(5) + 1,
+       value: rand.Intn(5) + 1,
+     }
+     dice = append(dice, d)
    }
-   dice = append(dice, d)
- }
 
- for i := 0; i < 6; i++ {
-  orderDice(i+1, dice)
- }
+   for i := 0; i < 6; i++ {
+     orderDice(i+1, dice)
+   }
 
- timeTaken := time.Since(start)
- fmt.Printf("Time taken : %s \n", timeTaken)
-}
+   timeTaken := time.Since(start)
+   fmt.Printf("Time taken : %s \n", timeTaken)
+ }
 
 </code></pre>
 </section>
 </section>
 
+<section>
+	<section>
+		<p>/naive/main.go</p>
+		<pre><code class="go">
+ package main
 
+ import (
+   "fmt"
+   "log"
+   "math/rand"
+   "time"
+ )
+
+ type die struct {
+   value int
+   id    int
+ }
+
+ type person struct {
+   id  int
+   in  chan []*die
+   out chan []*die
+ }
+
+ func (p *person) doWork() {
+
+   box := <-p.in
+   for _, die := range box {
+     if p.id == 1 {
+       die.value = 1
+     } else {
+       die.value++
+     }
+
+     log.Printf("Person %d set die %d to %d\n", p.id, die.id, die.value)
+     time.Sleep(time.Duration(100) * time.Millisecond)
+   }
+   p.out <- box
+}
+
+ func logCompletion(c chan []*die) {
+
+   dice := <-c
+   for _, d := range dice {
+     log.Printf("Die %d is completed\n", d.id)
+   }
+
+ }
+
+ func main() {
+
+   start := time.Now()
+
+   //create 10 dice
+   var dice []*die
+   for e := 0; e < 10; e++ {
+
+     d := &die{
+       value: rand.Intn(5) + 1,
+       id:    e + 1,
+     }
+
+     dice = append(dice, d)
+
+   }
+
+   //Create 6 people
+   var room []*person
+   startCh := make(chan []*die, 10)
+   prevCh := startCh
+   for i := 0; i < 6; i++ {
+     out := make(chan []*die, 10)
+     p := &person{
+       id:  i + 1,
+       in:  prevCh,
+       out: out,
+     }
+
+     prevCh = out
+
+     room = append(room, p)
+     go p.doWork()
+
+   }
+   //send the box of dice to the first person
+   startCh <- dice
+   //wait forthe boxes to return
+   logCompletion(prevCh)
+
+   timeTaken := time.Since(start)
+   fmt.Printf("Time taken : %s \n", timeTaken)
+}
+</code></pre>
+</section>
+</section>
+<section>
+	<p>/optimal/main.go</p>
+	<pre><code class="go">
+ type person struct {
+   id  int
+   in  chan *die //channels now communicate single die
+   out chan *die
+ }
+
+ func (p *person) doWork() {
+   //range p.in continues pulling things from the channel until it is closed
+   for die := range p.in {
+     if p.id == 1 {
+       die.value = 1
+     } else {
+       die.value++
+     }
+     log.Printf("Person %d set die %d to %d\n", p.id, die.id, die.value)
+     time.Sleep(time.Duration(100) * time.Millisecond)
+     p.out <- die
+   }
+ }
+
+ //called now for each completed die, not the set
+ func logCompletion(c chan *die) {
+
+   d := <-c
+   log.Printf("Die %d is completed\n", d.id)
+
+ }
+
+ func main() {
+
+   //...
+
+   //Create 6 people
+   var room []*person
+   startCh := make(chan *die, 10) //chan is now a different type
+   prevCh := startCh
+   for i := 0; i < 6; i++ {
+     out := make(chan *die, 10)
+     p := &person{
+       id:  i + 1,
+       in:  prevCh,
+       out: out,
+     }
+
+     prevCh = out
+
+     room = append(room, p)
+     go p.doWork()
+
+   }
+
+   for _, d := range dice {  //send each die in separately
+     startCh <- d
+   }
+
+   for _ = range dice {
+     logCompletion(prevCh) //receive each die as they are completed
+   }
+
+   timeTaken := time.Since(start)
+   fmt.Printf("Time taken : %s \n", timeTaken)
+
+ }
+
+	</code></pre>
+</section>
 				<section>
 					<h2>Thank you</h2>
 					<h3>David Bochenski | @goincremental</h3>
